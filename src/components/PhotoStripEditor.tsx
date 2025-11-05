@@ -232,9 +232,43 @@ function DraggableText({
     document.addEventListener("mouseup", handleMouseUp);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    onSelect(element.id);
+
+    const touch = e.touches[0];
+    const startX = touch.clientX;
+    const startY = touch.clientY;
+    const startPosX = element.x;
+    const startPosY = element.y;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      const touch = moveEvent.touches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      onUpdate(
+        element.id,
+        startPosX + deltaX,
+        startPosY + deltaY,
+      );
+    };
+
+    const handleTouchEnd = () => {
+      document.removeEventListener(
+        "touchmove",
+        handleTouchMove,
+      );
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleTouchEnd);
+  };
+
   return (
     <div
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onClick={() => onSelect(element.id)}
       style={{
         position: "absolute",
@@ -253,6 +287,7 @@ function DraggableText({
           ? "2px dashed rgba(255,255,255,0.5)"
           : "none",
         padding: "4px",
+        touchAction: "none",
       }}
       className="group"
     >
@@ -262,8 +297,16 @@ function DraggableText({
           e.stopPropagation();
           onDelete(element.id);
         }}
-        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ fontSize: "12px" }}
+        onTouchEnd={(e) => {
+          e.stopPropagation();
+          onDelete(element.id);
+        }}
+        className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+          isSelected
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100"
+        }`}
+        style={{ fontSize: "14px", touchAction: "auto" }}
       >
         ×
       </button>
@@ -317,9 +360,43 @@ function DraggableSticker({
     document.addEventListener("mouseup", handleMouseUp);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    onSelect(element.id);
+
+    const touch = e.touches[0];
+    const startX = touch.clientX;
+    const startY = touch.clientY;
+    const startPosX = element.x;
+    const startPosY = element.y;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      const touch = moveEvent.touches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      onUpdate(
+        element.id,
+        startPosX + deltaX,
+        startPosY + deltaY,
+      );
+    };
+
+    const handleTouchEnd = () => {
+      document.removeEventListener(
+        "touchmove",
+        handleTouchMove,
+      );
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleTouchEnd);
+  };
+
   return (
     <div
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onClick={() => onSelect(element.id)}
       style={{
         position: "absolute",
@@ -336,6 +413,7 @@ function DraggableSticker({
           : "none",
         padding: "4px",
         borderRadius: "4px",
+        touchAction: "none",
       }}
       className="group"
     >
@@ -345,7 +423,16 @@ function DraggableSticker({
           e.stopPropagation();
           onDelete(element.id);
         }}
-        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+        onTouchEnd={(e) => {
+          e.stopPropagation();
+          onDelete(element.id);
+        }}
+        className={`absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+          isSelected
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100"
+        }`}
+        style={{ fontSize: "14px", touchAction: "auto" }}
       >
         ×
       </button>
