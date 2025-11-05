@@ -1,9 +1,21 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Camera, ArrowLeft, Download, Check, Edit, X } from "lucide-react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
+import {
+  Camera,
+  ArrowLeft,
+  Download,
+  Check,
+  Edit,
+  X,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Progress } from "./ui/progress";
-import { toast } from "sonner";
+import { toast } from "sonner@2.0.3";
 import { PhotoStripEditor } from "./PhotoStripEditor";
 
 interface PhotoBoothProps {
@@ -23,10 +35,18 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
   const [state, setState] = useState<CaptureState>("ready");
   const [countdown, setCountdown] = useState(7);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
-  const [selectedPhotos, setSelectedPhotos] = useState<number[]>([]);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [capturedPhotos, setCapturedPhotos] = useState<
+    string[]
+  >([]);
+  const [selectedPhotos, setSelectedPhotos] = useState<
+    number[]
+  >([]);
+  const [stream, setStream] = useState<MediaStream | null>(
+    null,
+  );
+  const [cameraError, setCameraError] = useState<string | null>(
+    null,
+  );
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -74,15 +94,26 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
     }
 
     // Wait until the metadata/dimensions are available
-    if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+    if (
+      video.readyState < 2 ||
+      video.videoWidth === 0 ||
+      video.videoHeight === 0
+    ) {
       await new Promise<void>((resolve) => {
         const onCanPlay = () => {
-          video.removeEventListener("loadedmetadata", onCanPlay);
+          video.removeEventListener(
+            "loadedmetadata",
+            onCanPlay,
+          );
           video.removeEventListener("canplay", onCanPlay);
           resolve();
         };
-        video.addEventListener("loadedmetadata", onCanPlay, { once: true });
-        video.addEventListener("canplay", onCanPlay, { once: true });
+        video.addEventListener("loadedmetadata", onCanPlay, {
+          once: true,
+        });
+        video.addEventListener("canplay", onCanPlay, {
+          once: true,
+        });
       });
     }
 
@@ -102,11 +133,51 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
     if (!context) return;
 
     // Safety: if dimensions are still zero, skip to avoid black frame
-    if (video.videoWidth === 0 || video.videoHeight === 0) return;
+    if (video.videoWidth === 0 || video.videoHeight === 0)
+      return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
+    // Calculate the visible portion of the video (object-cover behavior)
+    // The video container has 16:9 aspect ratio (aspect-video)
+    const containerAspect = 16 / 9;
+    const videoAspect = video.videoWidth / video.videoHeight;
+
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = video.videoWidth;
+    let sourceHeight = video.videoHeight;
+
+    if (videoAspect > containerAspect) {
+      // Video is wider than container - crop left/right
+      sourceWidth = video.videoHeight * containerAspect;
+      sourceX = (video.videoWidth - sourceWidth) / 2;
+    } else {
+      // Video is taller than container - crop top/bottom
+      sourceHeight = video.videoWidth / containerAspect;
+      sourceY = (video.videoHeight - sourceHeight) / 2;
+    }
+
+    // Set canvas to 16:9 aspect ratio with good quality
+    // Using 1920x1080 for Full HD quality
+    canvas.width = 1920;
+    canvas.height = 1080;
+
+    // Flip the image horizontally (mirror effect)
+    context.save();
+    context.scale(-1, 1);
+
+    // Draw only the visible portion of the video
+    context.drawImage(
+      video,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      -canvas.width,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    context.restore();
 
     const photoData = canvas.toDataURL("image/png");
 
@@ -136,7 +207,9 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
           setState("countdown");
         } else {
           setState("selecting");
-          toast.success("All photos captured! Select 4 for your photo strip.");
+          toast.success(
+            "All photos captured! Select 4 for your photo strip.",
+          );
         }
         return next;
       });
@@ -147,7 +220,10 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
   useEffect(() => {
     if (state !== "countdown") return;
     if (countdown > 0) {
-      const t = window.setTimeout(() => setCountdown((c) => c - 1), 1000);
+      const t = window.setTimeout(
+        () => setCountdown((c) => c - 1),
+        1000,
+      );
       return () => window.clearTimeout(t);
     }
     // when countdown hits 0, take the shot
@@ -166,9 +242,15 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
       // If we already have a stream, reuse it
       let mediaStream = stream;
       if (!mediaStream) {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: "user" },
-        });
+        mediaStream = await navigator.mediaDevices.getUserMedia(
+          {
+            video: {
+              width: 640,
+              height: 480,
+              facingMode: "user",
+            },
+          },
+        );
         setStream(mediaStream);
       }
       if (videoRef.current && mediaStream) {
@@ -187,11 +269,14 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
       let errorMsg = "Unable to access camera.";
       if (error instanceof Error) {
         if (error.name === "NotAllowedError") {
-          errorMsg = "Camera permission denied. Please allow camera access and try again.";
+          errorMsg =
+            "Camera permission denied. Please allow camera access and try again.";
         } else if (error.name === "NotFoundError") {
-          errorMsg = "No camera found. Please connect a camera and try again.";
+          errorMsg =
+            "No camera found. Please connect a camera and try again.";
         } else if (error.name === "NotReadableError") {
-          errorMsg = "Camera is in use by another app. Please close other apps and try again.";
+          errorMsg =
+            "Camera is in use by another app. Please close other apps and try again.";
         }
       }
       setCameraError(errorMsg);
@@ -200,7 +285,9 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
   };
 
   const removePhoto = (index: number) => {
-    setCapturedPhotos((prev) => prev.filter((_, i) => i !== index));
+    setCapturedPhotos((prev) =>
+      prev.filter((_, i) => i !== index),
+    );
     setSelectedPhotos((prev) => {
       const newSelected = prev.filter((i) => i !== index);
       return newSelected.map((i) => (i > index ? i - 1 : i));
@@ -210,7 +297,8 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
 
   const togglePhotoSelection = (index: number) => {
     setSelectedPhotos((prev) => {
-      if (prev.includes(index)) return prev.filter((i) => i !== index);
+      if (prev.includes(index))
+        return prev.filter((i) => i !== index);
       if (prev.length < 4) return [...prev, index];
       toast.error("You can only select 4 photos");
       return prev;
@@ -240,16 +328,26 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const padding = 30;
-    const photoPadding = 15;
-    const stripWidth = 400;
+    // HIGH RESOLUTION - Using 5x scale for Full HD quality output
+    const scale = 5;
+    const padding = 30 * scale;
+    const photoPadding = 15 * scale;
+    const stripWidth = 400 * scale;
     const photoWidth = stripWidth - padding * 2;
-    const photoHeight = 240;
-    const bottomSpace = 60;
-    const stripHeight = padding * 2 + photoHeight * 4 + photoPadding * 3 + bottomSpace;
+    const photoHeight = 240 * scale;
+    const bottomSpace = 60 * scale;
+    const stripHeight =
+      padding * 2 +
+      photoHeight * 4 +
+      photoPadding * 3 +
+      bottomSpace;
 
     canvas.width = stripWidth;
     canvas.height = stripHeight;
+
+    // Enable high-quality image smoothing
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
 
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, stripWidth, stripHeight);
@@ -259,15 +357,26 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
       const img = new Image();
       img.src = capturedPhotos[photoIndex];
       img.onload = () => {
-        const yPosition = padding + i * (photoHeight + photoPadding);
-        context.drawImage(img, padding, yPosition, photoWidth, photoHeight);
+        const yPosition =
+          padding + i * (photoHeight + photoPadding);
+        context.drawImage(
+          img,
+          padding,
+          yPosition,
+          photoWidth,
+          photoHeight,
+        );
 
         loadedCount++;
         if (loadedCount === 4) {
           context.fillStyle = "#9333ea";
-          context.font = "28px Pacifico, cursive";
+          context.font = `${28 * scale}px Pacifico, cursive`;
           context.textAlign = "center";
-          context.fillText("Fotoboo", stripWidth / 2, stripHeight - 25);
+          context.fillText(
+            "Fotoboo",
+            stripWidth / 2,
+            stripHeight - 25 * scale,
+          );
 
           const link = document.createElement("a");
           link.download = `fotoboo-${Date.now()}.png`;
@@ -298,8 +407,15 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
   const backFromEditor = () => setState("complete");
 
   if (state === "editing") {
-    const selectedPhotoData = selectedPhotos.map((i) => capturedPhotos[i]);
-    return <PhotoStripEditor photos={selectedPhotoData} onBack={backFromEditor} />;
+    const selectedPhotoData = selectedPhotos.map(
+      (i) => capturedPhotos[i],
+    );
+    return (
+      <PhotoStripEditor
+        photos={selectedPhotoData}
+        onBack={backFromEditor}
+      />
+    );
   }
 
   return (
@@ -307,7 +423,11 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button onClick={onBackHome} variant="ghost" className="text-white hover:bg-white/20">
+          <Button
+            onClick={onBackHome}
+            variant="ghost"
+            className="text-white hover:bg-white/20"
+          >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Home
           </Button>
@@ -323,8 +443,12 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                 !
               </div>
               <div className="flex-1">
-                <h3 className="text-white mb-1">Camera Access Required</h3>
-                <p className="text-white/90 text-sm">{cameraError}</p>
+                <h3 className="text-white mb-1">
+                  Camera Access Required
+                </h3>
+                <p className="text-white/90 text-sm">
+                  {cameraError}
+                </p>
               </div>
             </div>
           </Card>
@@ -337,7 +461,8 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
             <div className="space-y-4">
               <h2 className="text-2xl text-white text-center">
                 {state === "ready" && "Ready to Start"}
-                {state === "countdown" && `Photo ${currentPhotoIndex + 1} of 4`}
+                {state === "countdown" &&
+                  `Photo ${currentPhotoIndex + 1} of 4`}
                 {state === "capturing" && "Capturing..."}
                 {state === "preview" && "Photo Captured!"}
                 {state === "selecting" && "Select Your Photos"}
@@ -348,7 +473,10 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                 <div className="text-center mb-4">
                   <p className="text-white text-2xl">
                     Photo {currentPhotoIndex + 1} of 4 in{" "}
-                    <span className="text-4xl animate-pulse">{countdown}</span>s
+                    <span className="text-4xl animate-pulse">
+                      {countdown}
+                    </span>
+                    s
                   </p>
                 </div>
               )}
@@ -362,15 +490,20 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                     autoPlay
                     playsInline
                     muted
+                    style={{ transform: "scaleX(-1)" }}
                     className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                      state === "preview" ? "opacity-0" : "opacity-100"
+                      state === "preview"
+                        ? "opacity-0"
+                        : "opacity-100"
                     }`}
                   />
                 ) : (
                   <div className="absolute inset-0 w-full h-full rounded-lg bg-black/50 flex items-center justify-center">
                     <div className="text-center text-white/60">
                       <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p>Click "Start Capture" to enable camera</p>
+                      <p>
+                        Click "Start Capture" to enable camera
+                      </p>
                     </div>
                   </div>
                 )}
@@ -378,10 +511,14 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                 {/* Preview overlay (only if we have at least one capture) */}
                 {capturedPhotos.length > 0 && (
                   <img
-                    src={capturedPhotos[capturedPhotos.length - 1]}
+                    src={
+                      capturedPhotos[capturedPhotos.length - 1]
+                    }
                     alt="Captured preview"
                     className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                      state === "preview" ? "opacity-100" : "opacity-0"
+                      state === "preview"
+                        ? "opacity-100"
+                        : "opacity-0"
                     }`}
                   />
                 )}
@@ -390,7 +527,10 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
               {/* Progress */}
               {state === "countdown" && (
                 <div className="space-y-2">
-                  <Progress value={((7 - countdown) / 7) * 100} className="h-2" />
+                  <Progress
+                    value={((7 - countdown) / 7) * 100}
+                    className="h-2"
+                  />
                 </div>
               )}
 
@@ -402,12 +542,15 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                   style={{ color: "#44318D" }}
                 >
                   <Camera className="w-6 h-6" />
-                  {stream ? "Start Capture (4 Photos)" : "Enable Camera & Start"}
+                  {stream
+                    ? "Start Capture (4 Photos)"
+                    : "Enable Camera & Start"}
                 </Button>
               )}
 
               {/* Retake Button */}
-              {(state === "selecting" || state === "complete") && (
+              {(state === "selecting" ||
+                state === "complete") && (
                 <Button
                   onClick={retakePhotos}
                   className="w-full bg-white hover:bg-white/90 py-4"
@@ -421,10 +564,14 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
 
           {/* Photos Panel */}
           <Card className="p-6 bg-white/10 backdrop-blur-md border-white/20">
-            <h3 className="text-xl text-white mb-4">Captured Photos</h3>
+            <h3 className="text-xl text-white mb-4">
+              Captured Photos
+            </h3>
 
             {capturedPhotos.length === 0 && (
-              <div className="text-center text-white/60 py-16">No photos captured yet</div>
+              <div className="text-center text-white/60 py-16">
+                No photos captured yet
+              </div>
             )}
 
             {capturedPhotos.length > 0 &&
@@ -438,7 +585,8 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                       <div
                         key={index}
                         className={`relative rounded-lg overflow-hidden border-4 transition-all group ${
-                          state === "selecting" && selectedPhotos.includes(index)
+                          state === "selecting" &&
+                          selectedPhotos.includes(index)
                             ? "border-green-400 scale-95"
                             : "border-white/20 hover:border-white/40"
                         }`}
@@ -447,7 +595,10 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                           src={photo}
                           alt={`Captured ${index + 1}`}
                           className={`w-full ${state === "selecting" ? "cursor-pointer" : ""}`}
-                          onClick={() => state === "selecting" && togglePhotoSelection(index)}
+                          onClick={() =>
+                            state === "selecting" &&
+                            togglePhotoSelection(index)
+                          }
                         />
                         {state === "selecting" && (
                           <button
@@ -457,16 +608,18 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                             <X className="w-4 h-4" />
                           </button>
                         )}
-                        {state === "selecting" && selectedPhotos.includes(index) && (
-                          <div className="absolute inset-0 bg-green-400/30 flex items-center justify-center pointer-events-none">
-                            <div className="bg-green-400 rounded-full p-2">
-                              <Check className="w-6 h-6 text-white" />
+                        {state === "selecting" &&
+                          selectedPhotos.includes(index) && (
+                            <div className="absolute inset-0 bg-green-400/30 flex items-center justify-center pointer-events-none">
+                              <div className="bg-green-400 rounded-full p-2">
+                                <Check className="w-6 h-6 text-white" />
+                              </div>
+                              <div className="absolute top-2 right-2 bg-green-400 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                                {selectedPhotos.indexOf(index) +
+                                  1}
+                              </div>
                             </div>
-                            <div className="absolute top-2 right-2 bg-green-400 text-white rounded-full w-8 h-8 flex items-center justify-center">
-                              {selectedPhotos.indexOf(index) + 1}
-                            </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     ))}
                   </div>
@@ -482,7 +635,9 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                           onClick={finishSelection}
                           disabled={selectedPhotos.length !== 4}
                           className="w-full bg-green-500 hover:bg-green-600 text-white py-6"
-                          style={{ fontFamily: "Pacifico, cursive" }}
+                          style={{
+                            fontFamily: "Pacifico, cursive",
+                          }}
                         >
                           Create Photo Strip
                         </Button>
@@ -507,7 +662,11 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                   <div className="space-y-3">
                     {selectedPhotos.map((photoIndex, i) => (
                       <div key={i} className="w-full">
-                        <img src={capturedPhotos[photoIndex]} alt={`Strip ${i + 1}`} className="w-full rounded-sm" />
+                        <img
+                          src={capturedPhotos[photoIndex]}
+                          alt={`Strip ${i + 1}`}
+                          className="w-full rounded-sm"
+                        />
                       </div>
                     ))}
                     <div className="pt-3 text-center">

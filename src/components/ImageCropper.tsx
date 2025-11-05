@@ -149,9 +149,10 @@ export function ImageCropper({
     );
     ctx.restore();
 
-    // Draw crop area border
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
+    // Draw crop area border (brighter when actively interacting)
+    const isInteracting = isDragging || isResizing;
+    ctx.strokeStyle = isInteracting ? "#10b981" : "#ffffff";
+    ctx.lineWidth = isInteracting ? 3 : 2;
     ctx.strokeRect(
       cropArea.x,
       cropArea.y,
@@ -159,8 +160,10 @@ export function ImageCropper({
       cropArea.height,
     );
 
-    // Draw grid lines
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    // Draw grid lines (more visible when interacting)
+    ctx.strokeStyle = isInteracting
+      ? "rgba(16, 185, 129, 0.6)"
+      : "rgba(255, 255, 255, 0.5)";
     ctx.lineWidth = 1;
 
     // Vertical lines
@@ -195,12 +198,13 @@ export function ImageCropper({
     );
     ctx.stroke();
 
-    // Draw corner handles (larger and more visible)
-    const handleSize = 20;
-    const handleThickness = 3;
-    ctx.strokeStyle = "#ffffff";
+    // Draw corner handles (larger and more visible, especially on mobile)
+    const isTouchDevice = "ontouchstart" in window;
+    const handleSize = isTouchDevice ? 30 : 20;
+    const handleThickness = isTouchDevice ? 4 : 3;
+    ctx.strokeStyle = isInteracting ? "#10b981" : "#ffffff";
     ctx.lineWidth = handleThickness;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = isInteracting ? "#10b981" : "#ffffff";
 
     // Top-left corner
     ctx.beginPath();
@@ -256,7 +260,9 @@ export function ImageCropper({
     x: number,
     y: number,
   ): string | null => {
-    const handleSize = 20;
+    // Larger hit area for mobile/touch devices (40px) vs desktop (20px)
+    const isTouchDevice = "ontouchstart" in window;
+    const handleSize = isTouchDevice ? 40 : 20;
 
     // Check corners first (priority)
     if (
@@ -432,6 +438,130 @@ export function ImageCropper({
     }
   };
 
+  // Touch event handlers for mobile support
+  const handleTouchStart = (
+    e: React.TouchEvent<HTMLCanvasElement>,
+  ) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    // Check if touching a resize handle
+    const handle = getResizeHandle(x, y);
+    if (handle) {
+      setIsResizing(true);
+      setResizeHandle(handle);
+      setDragStart({ x, y });
+      return;
+    }
+
+    // Check if touch is inside crop area for dragging
+    if (
+      x >= cropArea.x &&
+      x <= cropArea.x + cropArea.width &&
+      y >= cropArea.y &&
+      y <= cropArea.y + cropArea.height
+    ) {
+      setIsDragging(true);
+      setDragStart({ x: x - cropArea.x, y: y - cropArea.y });
+    }
+  };
+
+  const handleTouchMove = (
+    e: React.TouchEvent<HTMLCanvasElement>,
+  ) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    if (isResizing && resizeHandle) {
+      const deltaX = x - dragStart.x;
+      const deltaY = y - dragStart.y;
+
+      let newX = cropArea.x;
+      let newY = cropArea.y;
+      let newWidth = cropArea.width;
+      let newHeight = cropArea.height;
+
+      // Calculate new dimensions based on handle
+      switch (resizeHandle) {
+        case "nw": // top-left
+          newX = cropArea.x + deltaX;
+          newWidth = cropArea.width - deltaX;
+          newHeight = newWidth / aspectRatio;
+          newY = cropArea.y + cropArea.height - newHeight;
+          break;
+        case "ne": // top-right
+          newWidth = cropArea.width + deltaX;
+          newHeight = newWidth / aspectRatio;
+          newY = cropArea.y + cropArea.height - newHeight;
+          break;
+        case "sw": // bottom-left
+          newX = cropArea.x + deltaX;
+          newWidth = cropArea.width - deltaX;
+          newHeight = newWidth / aspectRatio;
+          break;
+        case "se": // bottom-right
+          newWidth = cropArea.width + deltaX;
+          newHeight = newWidth / aspectRatio;
+          break;
+      }
+
+      // Enforce minimum size
+      const minSize = 50;
+      if (newWidth >= minSize && newHeight >= minSize) {
+        // Ensure crop area stays within canvas bounds
+        if (
+          newX >= 0 &&
+          newY >= 0 &&
+          newX + newWidth <= canvas.width &&
+          newY + newHeight <= canvas.height
+        ) {
+          setCropArea({
+            x: newX,
+            y: newY,
+            width: newWidth,
+            height: newHeight,
+          });
+          setDragStart({ x, y });
+        }
+      }
+    } else if (isDragging) {
+      const newX = Math.max(
+        0,
+        Math.min(
+          x - dragStart.x,
+          canvas.width - cropArea.width,
+        ),
+      );
+      const newY = Math.max(
+        0,
+        Math.min(
+          y - dragStart.y,
+          canvas.height - cropArea.height,
+        ),
+      );
+
+      setCropArea((prev) => ({ ...prev, x: newX, y: newY }));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setIsResizing(false);
+    setResizeHandle(null);
+  };
+
   const handleCrop = () => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
@@ -454,7 +584,7 @@ export function ImageCropper({
 
     // Enable high-quality image smoothing
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = "high";
 
     // Calculate the transformation from canvas to original image coordinates
     ctx.save();
@@ -506,7 +636,10 @@ export function ImageCropper({
 
     // Use high-quality JPEG (0.98 quality) for smaller file size with great quality
     // Or use PNG for lossless quality (larger file size)
-    const croppedImage = cropCanvas.toDataURL("image/jpeg", 0.98);
+    const croppedImage = cropCanvas.toDataURL(
+      "image/jpeg",
+      0.98,
+    );
     onCropComplete(croppedImage);
   };
 
@@ -523,8 +656,8 @@ export function ImageCropper({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <Card className="p-6 bg-white/10 backdrop-blur-md border-white/20 max-w-2xl w-full">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <Card className="p-4 sm:p-6 bg-white/10 backdrop-blur-md border-white/20 max-w-2xl w-full my-auto">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl text-white flex items-center gap-2">
@@ -546,15 +679,25 @@ export function ImageCropper({
           </div>
 
           <div className="text-white/80 text-sm">
-            Drag the crop area to reposition. Use the controls
-            below to zoom and rotate.
+            <span className="hidden sm:inline">
+              Drag the crop area to reposition. Use corner
+              handles to resize.
+            </span>
+            <span className="sm:hidden">
+              Tap and drag to move. Use corners to resize.
+            </span>{" "}
+            Use the controls below to zoom and rotate.
           </div>
 
           {/* Canvas Container */}
           <div
             ref={containerRef}
-            className="relative w-full bg-black/50 rounded-lg overflow-hidden"
-            style={{ height: "400px" }}
+            className="relative w-full bg-black/50 rounded-lg overflow-hidden h-64 sm:h-96"
+            style={{
+              touchAction: "none", // Prevent browser gestures
+              WebkitUserSelect: "none", // Prevent text selection on mobile
+              userSelect: "none",
+            }}
           >
             <canvas
               ref={canvasRef}
@@ -562,32 +705,36 @@ export function ImageCropper({
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              className="w-full h-full cursor-move"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+              className="w-full h-full cursor-move touch-none"
             />
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Label className="text-white text-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center justify-center gap-2">
+              <Label className="text-white text-sm hidden sm:inline">
                 Zoom:
               </Label>
               <Button
                 onClick={handleZoomOut}
                 variant="outline"
                 size="sm"
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20 flex-1 sm:flex-none"
               >
                 <ZoomOut className="w-4 h-4" />
               </Button>
-              <span className="text-white text-sm min-w-12 text-center">
+              <span className="text-white text-sm min-w-16 sm:min-w-12 text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <Button
                 onClick={handleZoomIn}
                 variant="outline"
                 size="sm"
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20 flex-1 sm:flex-none"
               >
                 <ZoomIn className="w-4 h-4" />
               </Button>
@@ -605,17 +752,17 @@ export function ImageCropper({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 sm:gap-3 pt-2">
             <Button
               onClick={onCancel}
               variant="outline"
-              className="flex-1 bg-white/10 text-white border-white/20 hover:bg-white/20"
+              className="flex-1 bg-white/10 text-white border-white/20 hover:bg-white/20 h-11 sm:h-10"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCrop}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white h-11 sm:h-10"
             >
               <Check className="w-4 h-4 mr-2" />
               Apply Crop
