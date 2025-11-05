@@ -27,29 +27,28 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build project
         run: |
           npm run build
-          # SPA fallback for React Router / client-side routes
+          # SPA fallback for client-side routing
           cp build/index.html build/404.html || true
-          # Debug: show what got built
           echo "Built files:" && ls -la build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './build' 
+          path: ./build
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - name: Deploy
-        id: deployment
+      - name: Deploy to GitHub Pages
+        id: deploy
         uses: actions/deploy-pages@v4
