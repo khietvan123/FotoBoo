@@ -1,0 +1,628 @@
+import { useState, useRef, useEffect } from "react";
+import { Button } from "./ui/button";
+import { Card } from "./ui/card";
+import {
+  Crop,
+  Check,
+  X,
+  RotateCw,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import { Label } from "./ui/label";
+
+interface ImageCropperProps {
+  image: string;
+  onCropComplete: (croppedImage: string) => void;
+  onCancel: () => void;
+  aspectRatio?: number; // width / height, default is 1.5 (340/240)
+  currentIndex?: number;
+  totalImages?: number;
+}
+
+export function ImageCropper({
+  image,
+  onCropComplete,
+  onCancel,
+  aspectRatio = 340 / 240,
+  currentIndex,
+  totalImages,
+}: ImageCropperProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [cropArea, setCropArea] = useState({
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 200 / aspectRatio,
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<
+    string | null
+  >(null);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = image;
+    img.onload = () => {
+      imageRef.current = img;
+      setImageLoaded(true);
+
+      // Initialize crop area to center
+      const containerWidth = 400;
+      const containerHeight = 300;
+      const initialWidth = Math.min(
+        containerWidth * 0.8,
+        img.width,
+      );
+      const initialHeight = initialWidth / aspectRatio;
+
+      setCropArea({
+        x: (containerWidth - initialWidth) / 2,
+        y: (containerHeight - initialHeight) / 2,
+        width: initialWidth,
+        height: initialHeight,
+      });
+    };
+  }, [image, aspectRatio]);
+
+  useEffect(() => {
+    if (
+      imageLoaded &&
+      imageRef.current &&
+      containerRef.current
+    ) {
+      drawCanvas();
+    }
+  }, [imageLoaded, cropArea, zoom, rotation]);
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    const img = imageRef.current;
+    const container = containerRef.current;
+
+    if (!canvas || !img || !container) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
+    canvas.width = containerWidth;
+    canvas.height = containerHeight;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, containerWidth, containerHeight);
+
+    // Draw image with zoom and rotation
+    ctx.save();
+    ctx.translate(containerWidth / 2, containerHeight / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.scale(zoom, zoom);
+
+    const scale = Math.max(
+      containerWidth / img.width,
+      containerHeight / img.height,
+    );
+    const scaledWidth = img.width * scale;
+    const scaledHeight = img.height * scale;
+
+    ctx.drawImage(
+      img,
+      -scaledWidth / 2,
+      -scaledHeight / 2,
+      scaledWidth,
+      scaledHeight,
+    );
+    ctx.restore();
+
+    // Draw crop area overlay (darken outside, keep inside transparent)
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+
+    // Draw overlay in 4 parts around the crop area
+    // Top
+    ctx.fillRect(0, 0, containerWidth, cropArea.y);
+    // Bottom
+    ctx.fillRect(
+      0,
+      cropArea.y + cropArea.height,
+      containerWidth,
+      containerHeight - (cropArea.y + cropArea.height),
+    );
+    // Left
+    ctx.fillRect(0, cropArea.y, cropArea.x, cropArea.height);
+    // Right
+    ctx.fillRect(
+      cropArea.x + cropArea.width,
+      cropArea.y,
+      containerWidth - (cropArea.x + cropArea.width),
+      cropArea.height,
+    );
+    ctx.restore();
+
+    // Draw crop area border
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+      cropArea.x,
+      cropArea.y,
+      cropArea.width,
+      cropArea.height,
+    );
+
+    // Draw grid lines
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.lineWidth = 1;
+
+    // Vertical lines
+    ctx.beginPath();
+    ctx.moveTo(cropArea.x + cropArea.width / 3, cropArea.y);
+    ctx.lineTo(
+      cropArea.x + cropArea.width / 3,
+      cropArea.y + cropArea.height,
+    );
+    ctx.moveTo(
+      cropArea.x + (2 * cropArea.width) / 3,
+      cropArea.y,
+    );
+    ctx.lineTo(
+      cropArea.x + (2 * cropArea.width) / 3,
+      cropArea.y + cropArea.height,
+    );
+
+    // Horizontal lines
+    ctx.moveTo(cropArea.x, cropArea.y + cropArea.height / 3);
+    ctx.lineTo(
+      cropArea.x + cropArea.width,
+      cropArea.y + cropArea.height / 3,
+    );
+    ctx.moveTo(
+      cropArea.x,
+      cropArea.y + (2 * cropArea.height) / 3,
+    );
+    ctx.lineTo(
+      cropArea.x + cropArea.width,
+      cropArea.y + (2 * cropArea.height) / 3,
+    );
+    ctx.stroke();
+
+    // Draw corner handles (larger and more visible)
+    const handleSize = 20;
+    const handleThickness = 3;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = handleThickness;
+    ctx.fillStyle = "#ffffff";
+
+    // Top-left corner
+    ctx.beginPath();
+    ctx.moveTo(cropArea.x, cropArea.y + handleSize);
+    ctx.lineTo(cropArea.x, cropArea.y);
+    ctx.lineTo(cropArea.x + handleSize, cropArea.y);
+    ctx.stroke();
+
+    // Top-right corner
+    ctx.beginPath();
+    ctx.moveTo(
+      cropArea.x + cropArea.width - handleSize,
+      cropArea.y,
+    );
+    ctx.lineTo(cropArea.x + cropArea.width, cropArea.y);
+    ctx.lineTo(
+      cropArea.x + cropArea.width,
+      cropArea.y + handleSize,
+    );
+    ctx.stroke();
+
+    // Bottom-left corner
+    ctx.beginPath();
+    ctx.moveTo(
+      cropArea.x,
+      cropArea.y + cropArea.height - handleSize,
+    );
+    ctx.lineTo(cropArea.x, cropArea.y + cropArea.height);
+    ctx.lineTo(
+      cropArea.x + handleSize,
+      cropArea.y + cropArea.height,
+    );
+    ctx.stroke();
+
+    // Bottom-right corner
+    ctx.beginPath();
+    ctx.moveTo(
+      cropArea.x + cropArea.width - handleSize,
+      cropArea.y + cropArea.height,
+    );
+    ctx.lineTo(
+      cropArea.x + cropArea.width,
+      cropArea.y + cropArea.height,
+    );
+    ctx.lineTo(
+      cropArea.x + cropArea.width,
+      cropArea.y + cropArea.height - handleSize,
+    );
+    ctx.stroke();
+  };
+
+  const getResizeHandle = (
+    x: number,
+    y: number,
+  ): string | null => {
+    const handleSize = 20;
+
+    // Check corners first (priority)
+    if (
+      Math.abs(x - cropArea.x) < handleSize &&
+      Math.abs(y - cropArea.y) < handleSize
+    ) {
+      return "nw"; // northwest (top-left)
+    }
+    if (
+      Math.abs(x - (cropArea.x + cropArea.width)) <
+        handleSize &&
+      Math.abs(y - cropArea.y) < handleSize
+    ) {
+      return "ne"; // northeast (top-right)
+    }
+    if (
+      Math.abs(x - cropArea.x) < handleSize &&
+      Math.abs(y - (cropArea.y + cropArea.height)) < handleSize
+    ) {
+      return "sw"; // southwest (bottom-left)
+    }
+    if (
+      Math.abs(x - (cropArea.x + cropArea.width)) <
+        handleSize &&
+      Math.abs(y - (cropArea.y + cropArea.height)) < handleSize
+    ) {
+      return "se"; // southeast (bottom-right)
+    }
+
+    return null;
+  };
+
+  const handleMouseDown = (
+    e: React.MouseEvent<HTMLCanvasElement>,
+  ) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Check if clicking on a resize handle
+    const handle = getResizeHandle(x, y);
+    if (handle) {
+      setIsResizing(true);
+      setResizeHandle(handle);
+      setDragStart({ x, y });
+      return;
+    }
+
+    // Check if click is inside crop area for dragging
+    if (
+      x >= cropArea.x &&
+      x <= cropArea.x + cropArea.width &&
+      y >= cropArea.y &&
+      y <= cropArea.y + cropArea.height
+    ) {
+      setIsDragging(true);
+      setDragStart({ x: x - cropArea.x, y: y - cropArea.y });
+    }
+  };
+
+  const handleMouseMove = (
+    e: React.MouseEvent<HTMLCanvasElement>,
+  ) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Update cursor based on position
+    if (!isDragging && !isResizing) {
+      const handle = getResizeHandle(x, y);
+      if (handle) {
+        if (handle === "nw" || handle === "se") {
+          canvas.style.cursor = "nwse-resize";
+        } else {
+          canvas.style.cursor = "nesw-resize";
+        }
+      } else if (
+        x >= cropArea.x &&
+        x <= cropArea.x + cropArea.width &&
+        y >= cropArea.y &&
+        y <= cropArea.y + cropArea.height
+      ) {
+        canvas.style.cursor = "move";
+      } else {
+        canvas.style.cursor = "default";
+      }
+    }
+
+    if (isResizing && resizeHandle) {
+      const deltaX = x - dragStart.x;
+      const deltaY = y - dragStart.y;
+
+      let newX = cropArea.x;
+      let newY = cropArea.y;
+      let newWidth = cropArea.width;
+      let newHeight = cropArea.height;
+
+      // Calculate new dimensions based on handle
+      switch (resizeHandle) {
+        case "nw": // top-left
+          newX = cropArea.x + deltaX;
+          newWidth = cropArea.width - deltaX;
+          newHeight = newWidth / aspectRatio;
+          newY = cropArea.y + cropArea.height - newHeight;
+          break;
+        case "ne": // top-right
+          newWidth = cropArea.width + deltaX;
+          newHeight = newWidth / aspectRatio;
+          newY = cropArea.y + cropArea.height - newHeight;
+          break;
+        case "sw": // bottom-left
+          newX = cropArea.x + deltaX;
+          newWidth = cropArea.width - deltaX;
+          newHeight = newWidth / aspectRatio;
+          break;
+        case "se": // bottom-right
+          newWidth = cropArea.width + deltaX;
+          newHeight = newWidth / aspectRatio;
+          break;
+      }
+
+      // Enforce minimum size
+      const minSize = 50;
+      if (newWidth >= minSize && newHeight >= minSize) {
+        // Ensure crop area stays within canvas bounds
+        if (
+          newX >= 0 &&
+          newY >= 0 &&
+          newX + newWidth <= canvas.width &&
+          newY + newHeight <= canvas.height
+        ) {
+          setCropArea({
+            x: newX,
+            y: newY,
+            width: newWidth,
+            height: newHeight,
+          });
+          setDragStart({ x, y });
+        }
+      }
+    } else if (isDragging) {
+      const newX = Math.max(
+        0,
+        Math.min(
+          x - dragStart.x,
+          canvas.width - cropArea.width,
+        ),
+      );
+      const newY = Math.max(
+        0,
+        Math.min(
+          y - dragStart.y,
+          canvas.height - cropArea.height,
+        ),
+      );
+
+      setCropArea((prev) => ({ ...prev, x: newX, y: newY }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
+    setResizeHandle(null);
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = "default";
+    }
+  };
+
+  const handleCrop = () => {
+    const canvas = canvasRef.current;
+    const img = imageRef.current;
+    const container = containerRef.current;
+
+    if (!canvas || !img || !container) return;
+
+    // Create a new canvas for the cropped image
+    const cropCanvas = document.createElement("canvas");
+    const ctx = cropCanvas.getContext("2d");
+    if (!ctx) return;
+
+    // Set crop canvas size to high resolution output (1700x1200 - 5x scale for better quality)
+    // This maintains the aspect ratio of 340/240 while providing Full HD quality
+    cropCanvas.width = 1700;
+    cropCanvas.height = 1200;
+
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
+    // Enable high-quality image smoothing
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Calculate the transformation from canvas to original image coordinates
+    ctx.save();
+
+    // We need to reverse the transformations to get the correct crop area from the original image
+    const scale =
+      Math.max(
+        containerWidth / img.width,
+        containerHeight / img.height,
+      ) * zoom;
+
+    // Calculate source rectangle in original image coordinates
+    const centerX = containerWidth / 2;
+    const centerY = containerHeight / 2;
+
+    // Transform crop area coordinates back to image space
+    const cropCenterX = cropArea.x + cropArea.width / 2;
+    const cropCenterY = cropArea.y + cropArea.height / 2;
+
+    // Offset from center
+    const offsetX = (cropCenterX - centerX) / scale;
+    const offsetY = (cropCenterY - centerY) / scale;
+
+    const sourceWidth = cropArea.width / scale;
+    const sourceHeight = cropArea.height / scale;
+
+    // Apply rotation to the crop canvas
+    ctx.translate(cropCanvas.width / 2, cropCanvas.height / 2);
+    ctx.rotate((-rotation * Math.PI) / 180);
+    ctx.translate(
+      -cropCanvas.width / 2,
+      -cropCanvas.height / 2,
+    );
+
+    // Draw the cropped portion
+    ctx.drawImage(
+      img,
+      img.width / 2 + offsetX - sourceWidth / 2,
+      img.height / 2 + offsetY - sourceHeight / 2,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      cropCanvas.width,
+      cropCanvas.height,
+    );
+
+    ctx.restore();
+
+    // Use high-quality JPEG (0.98 quality) for smaller file size with great quality
+    // Or use PNG for lossless quality (larger file size)
+    const croppedImage = cropCanvas.toDataURL("image/jpeg", 0.98);
+    onCropComplete(croppedImage);
+  };
+
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(prev + 0.1, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(prev - 0.1, 0.5));
+  };
+
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+      <Card className="p-6 bg-white/10 backdrop-blur-md border-white/20 max-w-2xl w-full">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl text-white flex items-center gap-2">
+              <Crop className="w-6 h-6" />
+              Crop Image
+              {typeof currentIndex === "number" &&
+                typeof totalImages === "number" && (
+                  <span className="text-lg text-white/80">
+                    ({currentIndex + 1}/{totalImages})
+                  </span>
+                )}
+            </h2>
+            <button
+              onClick={onCancel}
+              className="text-white/60 hover:text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="text-white/80 text-sm">
+            Drag the crop area to reposition. Use the controls
+            below to zoom and rotate.
+          </div>
+
+          {/* Canvas Container */}
+          <div
+            ref={containerRef}
+            className="relative w-full bg-black/50 rounded-lg overflow-hidden"
+            style={{ height: "400px" }}
+          >
+            <canvas
+              ref={canvasRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              className="w-full h-full cursor-move"
+            />
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-white text-sm">
+                Zoom:
+              </Label>
+              <Button
+                onClick={handleZoomOut}
+                variant="outline"
+                size="sm"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-white text-sm min-w-12 text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button
+                onClick={handleZoomIn}
+                variant="outline"
+                size="sm"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <Button
+              onClick={handleRotate}
+              variant="outline"
+              size="sm"
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+            >
+              <RotateCw className="w-4 h-4 mr-2" />
+              Rotate
+            </Button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={onCancel}
+              variant="outline"
+              className="flex-1 bg-white/10 text-white border-white/20 hover:bg-white/20"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCrop}
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              Apply Crop
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
