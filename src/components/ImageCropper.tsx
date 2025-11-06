@@ -457,6 +457,32 @@ export function ImageCropper({
       setIsResizing(true);
       setResizeHandle(handle);
       setDragStart({ x, y });
+      
+      // Add global touch move/end listeners
+      const handleGlobalTouchMove = (moveEvent: TouchEvent) => {
+        moveEvent.preventDefault();
+        if (!canvas) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const touch = moveEvent.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        handleTouchMoveLogic(x, y, canvas);
+      };
+      
+      const handleGlobalTouchEnd = () => {
+        setIsDragging(false);
+        setIsResizing(false);
+        setResizeHandle(null);
+        document.removeEventListener("touchmove", handleGlobalTouchMove);
+        document.removeEventListener("touchend", handleGlobalTouchEnd);
+        document.removeEventListener("touchcancel", handleGlobalTouchEnd);
+      };
+      
+      document.addEventListener("touchmove", handleGlobalTouchMove, { passive: false });
+      document.addEventListener("touchend", handleGlobalTouchEnd);
+      document.addEventListener("touchcancel", handleGlobalTouchEnd);
       return;
     }
 
@@ -469,21 +495,36 @@ export function ImageCropper({
     ) {
       setIsDragging(true);
       setDragStart({ x: x - cropArea.x, y: y - cropArea.y });
+      
+      // Add global touch move/end listeners
+      const handleGlobalTouchMove = (moveEvent: TouchEvent) => {
+        moveEvent.preventDefault();
+        if (!canvas) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const touch = moveEvent.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        handleTouchMoveLogic(x, y, canvas);
+      };
+      
+      const handleGlobalTouchEnd = () => {
+        setIsDragging(false);
+        setIsResizing(false);
+        setResizeHandle(null);
+        document.removeEventListener("touchmove", handleGlobalTouchMove);
+        document.removeEventListener("touchend", handleGlobalTouchEnd);
+        document.removeEventListener("touchcancel", handleGlobalTouchEnd);
+      };
+      
+      document.addEventListener("touchmove", handleGlobalTouchMove, { passive: false });
+      document.addEventListener("touchend", handleGlobalTouchEnd);
+      document.addEventListener("touchcancel", handleGlobalTouchEnd);
     }
   };
 
-  const handleTouchMove = (
-    e: React.TouchEvent<HTMLCanvasElement>,
-  ) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-
+  const handleTouchMoveLogic = (x: number, y: number, canvas: HTMLCanvasElement) => {
     if (isResizing && resizeHandle) {
       const deltaX = x - dragStart.x;
       const deltaY = y - dragStart.y;
@@ -554,6 +595,21 @@ export function ImageCropper({
 
       setCropArea((prev) => ({ ...prev, x: newX, y: newY }));
     }
+  };
+
+  const handleTouchMove = (
+    e: React.TouchEvent<HTMLCanvasElement>,
+  ) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    handleTouchMoveLogic(x, y, canvas);
   };
 
   const handleTouchEnd = () => {
