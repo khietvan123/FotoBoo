@@ -186,45 +186,21 @@ const STICKERS = [
   },
 ];
 
-function DraggableText({
-  element,
-  onUpdate,
-  onDelete,
-  onSelect,
-  isSelected,
-  isDragging,
-}: {
-  element: TextElement;
-  onUpdate: (id: string, x: number, y: number) => void;
-  onDelete: (id: string) => void;
-  onSelect: (id: string) => void;
-  isSelected: boolean;
-  isDragging: boolean;
-}) {
+function DraggableText({ element, onUpdate, onDelete, onSelect, isSelected, isDragging }: any) {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     onSelect(element.id);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startPosX = element.x;
-    const startPosY = element.y;
+    const startX = e.clientX, startY = e.clientY;
+    const startPosX = element.x, startPosY = element.y;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
-      onUpdate(
-        element.id,
-        startPosX + deltaX,
-        startPosY + deltaY,
-      );
+      onUpdate(element.id, startPosX + deltaX, startPosY + deltaY);
     };
 
     const handleMouseUp = () => {
-      document.removeEventListener(
-        "mousemove",
-        handleMouseMove,
-      );
+      document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
 
@@ -235,29 +211,19 @@ function DraggableText({
   const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
     onSelect(element.id);
-
     const touch = e.touches[0];
-    const startX = touch.clientX;
-    const startY = touch.clientY;
-    const startPosX = element.x;
-    const startPosY = element.y;
+    const startX = touch.clientX, startY = touch.clientY;
+    const startPosX = element.x, startPosY = element.y;
 
     const handleTouchMove = (moveEvent: TouchEvent) => {
-      const touch = moveEvent.touches[0];
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-      onUpdate(
-        element.id,
-        startPosX + deltaX,
-        startPosY + deltaY,
-      );
+      const t = moveEvent.touches[0];
+      const deltaX = t.clientX - startX;
+      const deltaY = t.clientY - startY;
+      onUpdate(element.id, startPosX + deltaX, startPosY + deltaY);
     };
 
     const handleTouchEnd = () => {
-      document.removeEventListener(
-        "touchmove",
-        handleTouchMove,
-      );
+      document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
     };
 
@@ -267,6 +233,7 @@ function DraggableText({
 
   return (
     <div
+      id={element.id}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onClick={() => onSelect(element.id)}
@@ -279,15 +246,15 @@ function DraggableText({
         color: element.color,
         cursor: "move",
         opacity: isDragging ? 0.5 : 1,
-        userSelect: "none",
-        textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
         transform: `rotate(${element.rotation}deg)`,
         transformOrigin: "center",
-        border: isSelected
-          ? "2px dashed rgba(255,255,255,0.5)"
-          : "none",
+        border: isSelected ? "2px dashed rgba(255,255,255,0.5)" : "none",
         padding: "4px",
+        userSelect: "none",
         touchAction: "none",
+        lineHeight: 1.1,
+        display: "inline-block",
+        textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
       }}
       className="group"
     >
@@ -301,12 +268,16 @@ function DraggableText({
           e.stopPropagation();
           onDelete(element.id);
         }}
-        className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
-          isSelected
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100"
+        className={`absolute bg-red-500 text-white rounded-full flex items-center justify-center transition-opacity p-3 ${
+          isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
-        style={{ fontSize: "14px", touchAction: "auto" }}
+        style={{
+          width: `${element.size * 0.35}px`,
+          height: `${element.size * 0.35}px`,
+          fontSize: `${element.size * 0.75}px`,
+          top: `-${element.size * 0.3}px`,
+          right: `-${element.size * 0.3}px`,
+        }}
       >
         ×
       </button>
@@ -314,45 +285,22 @@ function DraggableText({
   );
 }
 
-function DraggableSticker({
-  element,
-  onUpdate,
-  onDelete,
-  onSelect,
-  isSelected,
-  isDragging,
-}: {
-  element: StickerElement;
-  onUpdate: (id: string, x: number, y: number) => void;
-  onDelete: (id: string) => void;
-  onSelect: (id: string) => void;
-  isSelected: boolean;
-  isDragging: boolean;
-}) {
+
+function DraggableSticker({ element, onUpdate, onDelete, onSelect, isSelected, isDragging }: any) {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     onSelect(element.id);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startPosX = element.x;
-    const startPosY = element.y;
+    const startX = e.clientX, startY = e.clientY;
+    const startPosX = element.x, startPosY = element.y;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
-      onUpdate(
-        element.id,
-        startPosX + deltaX,
-        startPosY + deltaY,
-      );
+      onUpdate(element.id, startPosX + deltaX, startPosY + deltaY);
     };
 
     const handleMouseUp = () => {
-      document.removeEventListener(
-        "mousemove",
-        handleMouseMove,
-      );
+      document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
 
@@ -363,29 +311,19 @@ function DraggableSticker({
   const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
     onSelect(element.id);
-
     const touch = e.touches[0];
-    const startX = touch.clientX;
-    const startY = touch.clientY;
-    const startPosX = element.x;
-    const startPosY = element.y;
+    const startX = touch.clientX, startY = touch.clientY;
+    const startPosX = element.x, startPosY = element.y;
 
     const handleTouchMove = (moveEvent: TouchEvent) => {
-      const touch = moveEvent.touches[0];
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-      onUpdate(
-        element.id,
-        startPosX + deltaX,
-        startPosY + deltaY,
-      );
+      const t = moveEvent.touches[0];
+      const deltaX = t.clientX - startX;
+      const deltaY = t.clientY - startY;
+      onUpdate(element.id, startPosX + deltaX, startPosY + deltaY);
     };
 
     const handleTouchEnd = () => {
-      document.removeEventListener(
-        "touchmove",
-        handleTouchMove,
-      );
+      document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
     };
 
@@ -395,6 +333,7 @@ function DraggableSticker({
 
   return (
     <div
+      id={element.id}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onClick={() => onSelect(element.id)}
@@ -403,17 +342,14 @@ function DraggableSticker({
         left: element.x,
         top: element.y,
         fontSize: element.size,
+        transform: `rotate(${element.rotation}deg)`,
         cursor: "move",
         opacity: isDragging ? 0.5 : 1,
         userSelect: "none",
-        transform: `rotate(${element.rotation}deg)`,
-        transformOrigin: "center",
-        border: isSelected
-          ? "2px dashed rgba(255,255,255,0.5)"
-          : "none",
-        padding: "4px",
-        borderRadius: "4px",
+        border: isSelected ? "2px dashed rgba(255, 255, 255, 0.5)" : "none",
         touchAction: "none",
+        lineHeight: 1,
+        display: "inline-block",
       }}
       className="group"
     >
@@ -427,14 +363,18 @@ function DraggableSticker({
           e.stopPropagation();
           onDelete(element.id);
         }}
-        className={`absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
-          isSelected
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100"
+        className={`absolute bg-red-500 text-white rounded-full flex items-center justify-center transition-opacity p-3 ${
+          isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
-        style={{ fontSize: "14px", touchAction: "auto" }}
+        style={{
+          width: `${element.size * 0.3}px`,
+          height: `${element.size*0}px`,
+          fontSize: `${element.size * 0.4}px`,
+          top: `-${element.size * 0.25}px`,
+          right: `-${element.size * 0.25}px`,
+        }}
       >
-        ×
+        x
       </button>
     </div>
   );
@@ -594,18 +534,23 @@ export function PhotoStripEditor({
         }
 
         // Photo strip dimensions - HIGH RESOLUTION
-        // Using 5x scale for Full HD quality output
-        const scale = 5;
-        const padding = 30 * scale;
-        const photoPadding = 15 * scale;
-        const stripWidth = 400 * scale;
-        const photoWidth = stripWidth - padding * 2;
-        const photoHeight = 240 * scale;
-        const bottomSpace = 60 * scale;
+        // Preview: 320px width, 24px padding, photos at 16:9 ratio
+        // Preview photo width: 320 - 48 = 272px
+        // Preview photo height: 272 / (16/9) = 153px
+        // Photo spacing: 12px (space-y-3)
+
+        const scale = 6; // Higher scale for better quality
+        const padding = 24 * scale;
+        const stripWidth = 320 * scale;
+        const photoWidth = 272 * scale;
+        const photoHeight = 153 * scale; // 16:9 aspect ratio
+        const photoSpacing = 12 * scale;
+        const bottomSpace = 36 * scale; // Match preview bottom section (pt-3 + text)
+
         const stripHeight =
           padding * 2 +
           photoHeight * 4 +
-          photoPadding * 3 +
+          photoSpacing * 3 +
           bottomSpace;
 
         canvas.width = stripWidth;
@@ -621,15 +566,39 @@ export function PhotoStripEditor({
 
         let loadedCount = 0;
 
-        // Draw photos
+        // Draw photos with object-fit: cover behavior
         photos.forEach((photo, i) => {
           const img = new Image();
           img.src = photo;
           img.onload = () => {
             const yPosition =
-              padding + i * (photoHeight + photoPadding);
+              padding + i * (photoHeight + photoSpacing);
+
+            // Calculate dimensions for object-fit: cover
+            const imgAspect = img.width / img.height;
+            const targetAspect = photoWidth / photoHeight;
+
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = img.width;
+            let sourceHeight = img.height;
+
+            if (imgAspect > targetAspect) {
+              // Image is wider - crop left and right
+              sourceWidth = img.height * targetAspect;
+              sourceX = (img.width - sourceWidth) / 2;
+            } else {
+              // Image is taller - crop top and bottom
+              sourceHeight = img.width / targetAspect;
+              sourceY = (img.height - sourceHeight) / 2;
+            }
+
             context.drawImage(
               img,
+              sourceX,
+              sourceY,
+              sourceWidth,
+              sourceHeight,
               padding,
               yPosition,
               photoWidth,
@@ -639,39 +608,50 @@ export function PhotoStripEditor({
             loadedCount++;
 
             if (loadedCount === 4) {
-              // Calculate scale factor between preview and canvas
-              // Preview: 320px width with 24px padding
-              // Canvas: 400px width with 30px padding
-              const previewWidth = 320;
-              const scaleX = stripWidth / previewWidth;
-              const scaleY = scaleX; // Keep aspect ratio
-
+              // Scale factor is simply 'scale' since we're matching preview dimensions exactly
+              const scaleFactor = scale;
+              
+              const stickerOffsetX = 1;
+              const stickerOffsetY = 6;
+              const textOffsetX = 1;
+              const textOffsetY = 13; // smaller Y shift for text
               // Draw text elements with rotation and scaling
+              // Note: Text positions in preview are relative to content area (inside padding)
+              // So we need to add padding offset to match preview positioning
               textElements.forEach((text) => {
                 context.save();
                 context.translate(
-                  text.x * scaleX,
-                  text.y * scaleY,
+                   (text.x + textOffsetX ) * scaleFactor,
+                   (text.y + textOffsetY ) * scaleFactor,
                 );
                 context.rotate((text.rotation * Math.PI) / 180);
                 context.fillStyle = text.color;
-                context.font = `${text.size * scaleX}px ${text.font}`;
+                context.font = `${text.size * scaleFactor}px ${text.font}`;
                 context.textBaseline = "top";
+
+                context.shadowColor = "rgba(0, 0, 0, 0.3)";
+                context.shadowOffsetX = 2 * scaleFactor;
+                context.shadowOffsetY = 2 * scaleFactor;
+                context.shadowBlur = 4 * scaleFactor;
+
                 context.fillText(text.content, 0, 0);
                 context.restore();
               });
 
               // Draw stickers (emoji) with rotation and scaling
+              // Note: Sticker positions in preview are relative to content area (inside padding)
+              // So we need to add padding offset to match preview positioning
+
               stickerElements.forEach((sticker) => {
                 context.save();
                 context.translate(
-                  sticker.x * scaleX,
-                  sticker.y * scaleY,
+                   (sticker.x + stickerOffsetX) * scaleFactor,
+                   (sticker.y + stickerOffsetY) * scaleFactor,
                 );
                 context.rotate(
                   (sticker.rotation * Math.PI) / 180,
                 );
-                context.font = `${sticker.size * scaleX}px Arial`;
+                context.font = `${sticker.size * scaleFactor}px Arial`;
                 context.textBaseline = "top";
                 context.fillText(sticker.emoji, 0, 0);
                 context.restore();
@@ -679,18 +659,18 @@ export function PhotoStripEditor({
 
               // Add Fotoboo branding
               context.fillStyle = "#9333ea";
-              context.font = `${28 * scale}px Pacifico, cursive`;
+              context.font = `${24 * scale}px Pacifico, cursive`;
               context.textAlign = "center";
               context.textBaseline = "alphabetic";
               context.fillText(
                 "Fotoboo",
                 stripWidth / 2,
-                stripHeight - 25 * scale,
+                stripHeight - 20 * scale,
               );
 
               // Download
               const link = document.createElement("a");
-              link.download = `fotoboo-custom-${Date.now()}.png`;
+              link.download = `fotoboo-${Date.now()}.png`;
               link.href = canvas.toDataURL("image/png");
               link.click();
               toast.success("Photo strip downloaded!");
@@ -739,11 +719,15 @@ export function PhotoStripEditor({
               >
                 <div className="space-y-3">
                   {photos.map((photo, i) => (
-                    <div key={i} className="w-full">
+                    <div
+                      key={i}
+                      className="w-full relative rounded-sm overflow-hidden bg-black"
+                      style={{ aspectRatio: "16/9" }}
+                    >
                       <img
                         src={photo}
                         alt={`Strip ${i + 1}`}
-                        className="w-full rounded-sm pointer-events-none"
+                        className="w-full h-full object-cover pointer-events-none"
                       />
                     </div>
                   ))}
@@ -1008,33 +992,36 @@ export function PhotoStripEditor({
                           </div>
                           <div className="space-y-2">
                             <Label className="text-white text-sm">
-                              Rotate Selected Text
+                              Rotation:{" "}
+                              {
+                                (
+                                  getSelectedElement()
+                                    ?.element as TextElement
+                                ).rotation
+                              }
+                              °
                             </Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="range"
-                                min="-180"
-                                max="180"
-                                value={
-                                  getSelectedElement()?.element
-                                    .rotation || 0
-                                }
-                                onChange={(e) =>
-                                  updateTextRotation(
-                                    selectedElementId,
-                                    Number(e.target.value),
-                                  )
-                                }
-                                className="flex-1"
-                              />
-                              <span className="text-white text-sm w-12">
-                                {
-                                  getSelectedElement()?.element
-                                    .rotation
-                                }
-                                °
-                              </span>
-                            </div>
+                            <Input
+                              type="range"
+                              min="-45"
+                              max="45"
+                              value={
+                                (
+                                  getSelectedElement()
+                                    ?.element as TextElement
+                                ).rotation || 0
+                              }
+                              onChange={(e) => {
+                                const newRotation = Number(
+                                  e.target.value,
+                                );
+                                updateTextRotation(
+                                  selectedElementId,
+                                  newRotation,
+                                );
+                              }}
+                              className="w-full"
+                            />
                           </div>
                         </div>
                       )}
@@ -1047,25 +1034,18 @@ export function PhotoStripEditor({
                 value="stickers"
                 className="space-y-4 mt-4"
               >
-                <Label className="text-white">
-                  Choose a Sticker
-                </Label>
-
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <div className="space-y-4 max-h-96 overflow-y-auto">
                   {STICKERS.map((category) => (
-                    <div
-                      key={category.category}
-                      className="space-y-2"
-                    >
-                      <h4 className="text-white/80 text-sm">
+                    <div key={category.category}>
+                      <Label className="text-white mb-2 block">
                         {category.category}
-                      </h4>
+                      </Label>
                       <div className="grid grid-cols-5 gap-2">
-                        {category.items.map((emoji, idx) => (
+                        {category.items.map((emoji) => (
                           <button
-                            key={idx}
+                            key={emoji}
                             onClick={() => addSticker(emoji)}
-                            className="w-full aspect-square bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center text-2xl transition-all hover:scale-110"
+                            className="text-3xl p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
                           >
                             {emoji}
                           </button>
@@ -1100,7 +1080,7 @@ export function PhotoStripEditor({
                             <Input
                               type="range"
                               min="24"
-                              max="120"
+                              max="96"
                               value={
                                 (
                                   getSelectedElement()
@@ -1124,33 +1104,36 @@ export function PhotoStripEditor({
                           </div>
                           <div className="space-y-2">
                             <Label className="text-white text-sm">
-                              Rotate Selected Sticker
+                              Rotation:{" "}
+                              {
+                                (
+                                  getSelectedElement()
+                                    ?.element as StickerElement
+                                ).rotation
+                              }
+                              °
                             </Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="range"
-                                min="-180"
-                                max="180"
-                                value={
-                                  getSelectedElement()?.element
-                                    .rotation || 0
-                                }
-                                onChange={(e) =>
-                                  updateStickerRotation(
-                                    selectedElementId,
-                                    Number(e.target.value),
-                                  )
-                                }
-                                className="flex-1"
-                              />
-                              <span className="text-white text-sm w-12">
-                                {
-                                  getSelectedElement()?.element
-                                    .rotation
-                                }
-                                °
-                              </span>
-                            </div>
+                            <Input
+                              type="range"
+                              min="-45"
+                              max="45"
+                              value={
+                                (
+                                  getSelectedElement()
+                                    ?.element as StickerElement
+                                ).rotation || 0
+                              }
+                              onChange={(e) => {
+                                const newRotation = Number(
+                                  e.target.value,
+                                );
+                                updateStickerRotation(
+                                  selectedElementId,
+                                  newRotation,
+                                );
+                              }}
+                              className="w-full"
+                            />
                           </div>
                         </div>
                       )}
@@ -1158,28 +1141,22 @@ export function PhotoStripEditor({
                 )}
               </TabsContent>
 
-              {/* Special Event Tab */}
+              {/* Special Events Tab */}
               <TabsContent
                 value="special"
                 className="space-y-4 mt-4"
               >
-                <div className="bg-white/20 rounded-lg p-12 text-center">
-                  <h3 className="text-white text-xl mb-2">
-                    Special Event Templates
-                  </h3>
-                  <p className="text-white/80">Coming Soon!</p>
-                  <p className="text-white/60 text-sm mt-4">
-                    Create custom photo strips for birthdays,
-                    weddings, holidays, and more.
-                  </p>
-                </div>
+                <p className="text-white/60 text-sm">
+                  Coming soon: Special event templates and
+                  decorations!
+                </p>
               </TabsContent>
             </Tabs>
           </Card>
         </div>
 
-        {/* Hidden canvas for download */}
-        <canvas ref={canvasRef} className="hidden" />
+        {/* Hidden canvas for photo strip generation */}
+        <canvas ref={canvasRef} style={{ display: "none" }} />
       </div>
     </div>
   );

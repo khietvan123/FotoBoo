@@ -334,7 +334,7 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
     const photoPadding = 15 * scale;
     const stripWidth = 400 * scale;
     const photoWidth = stripWidth - padding * 2;
-    const photoHeight = 240 * scale;
+    const photoHeight = photoWidth / (16 / 9); // 16:9 aspect ratio
     const bottomSpace = 60 * scale;
     const stripHeight =
       padding * 2 +
@@ -359,8 +359,32 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
       img.onload = () => {
         const yPosition =
           padding + i * (photoHeight + photoPadding);
+        
+        // Calculate dimensions for object-fit: cover
+        const imgAspect = img.width / img.height;
+        const targetAspect = photoWidth / photoHeight;
+        
+        let sourceX = 0;
+        let sourceY = 0;
+        let sourceWidth = img.width;
+        let sourceHeight = img.height;
+        
+        if (imgAspect > targetAspect) {
+          // Image is wider - crop left and right
+          sourceWidth = img.height * targetAspect;
+          sourceX = (img.width - sourceWidth) / 2;
+        } else {
+          // Image is taller - crop top and bottom
+          sourceHeight = img.width / targetAspect;
+          sourceY = (img.height - sourceHeight) / 2;
+        }
+        
         context.drawImage(
           img,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
           padding,
           yPosition,
           photoWidth,
@@ -661,11 +685,15 @@ export function PhotoBooth({ onBackHome }: PhotoBoothProps) {
                 <div className="bg-white p-6 rounded-lg shadow-2xl max-w-xs mx-auto">
                   <div className="space-y-3">
                     {selectedPhotos.map((photoIndex, i) => (
-                      <div key={i} className="w-full">
+                      <div
+                        key={i}
+                        className="w-full relative rounded-sm overflow-hidden bg-black"
+                        style={{ aspectRatio: "16/9" }}
+                      >
                         <img
                           src={capturedPhotos[photoIndex]}
                           alt={`Strip ${i + 1}`}
-                          className="w-full rounded-sm"
+                          className="w-full h-full object-cover"
                         />
                       </div>
                     ))}

@@ -15,7 +15,7 @@ interface ImageCropperProps {
   image: string;
   onCropComplete: (croppedImage: string) => void;
   onCancel: () => void;
-  aspectRatio?: number; // width / height, default is 1.5 (340/240)
+  aspectRatio?: number; // width / height, default is 16/9 (1.7778)
   currentIndex?: number;
   totalImages?: number;
 }
@@ -24,7 +24,7 @@ export function ImageCropper({
   image,
   onCropComplete,
   onCancel,
-  aspectRatio = 340 / 240,
+  aspectRatio = 16 / 9,
   currentIndex,
   totalImages,
 }: ImageCropperProps) {
@@ -56,8 +56,8 @@ export function ImageCropper({
       setImageLoaded(true);
 
       // Initialize crop area to center
-      const containerWidth = 400;
-      const containerHeight = 300;
+      const containerWidth = 600;
+      const containerHeight = 450;
       const initialWidth = Math.min(
         containerWidth * 0.8,
         img.width,
@@ -574,10 +574,10 @@ export function ImageCropper({
     const ctx = cropCanvas.getContext("2d");
     if (!ctx) return;
 
-    // Set crop canvas size to high resolution output (1700x1200 - 5x scale for better quality)
-    // This maintains the aspect ratio of 340/240 while providing Full HD quality
-    cropCanvas.width = 1700;
-    cropCanvas.height = 1200;
+    // Set crop canvas size to high resolution output (1920x1080 - Full HD)
+    // This maintains the 16:9 aspect ratio for photo strip compatibility
+    cropCanvas.width = 1920;
+    cropCanvas.height = 1080;
 
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
@@ -648,7 +648,7 @@ export function ImageCropper({
   };
 
   const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 0.1, 0.5));
+    setZoom((prev) => Math.max(prev - 0.1, 0.1));
   };
 
   const handleRotate = () => {
@@ -692,8 +692,9 @@ export function ImageCropper({
           {/* Canvas Container */}
           <div
             ref={containerRef}
-            className="relative w-full bg-black/50 rounded-lg overflow-hidden h-64 sm:h-96"
+            className="relative w-full bg-black/50 rounded-lg overflow-hidden"
             style={{
+              height: "450px",
               touchAction: "none", // Prevent browser gestures
               WebkitUserSelect: "none", // Prevent text selection on mobile
               userSelect: "none",

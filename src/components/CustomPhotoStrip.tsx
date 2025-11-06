@@ -194,13 +194,15 @@ export function CustomPhotoStrip({
       const context = canvas.getContext("2d");
 
       if (context) {
-        // Photo strip dimensions with white borders (like polaroid)
-        const padding = 30;
-        const photoPadding = 15;
-        const stripWidth = 400;
+        // Photo strip dimensions with white borders (like polaroid) - HIGH RESOLUTION
+        // Using 5x scale for Full HD quality output
+        const scale = 5;
+        const padding = 30 * scale;
+        const photoPadding = 15 * scale;
+        const stripWidth = 400 * scale;
         const photoWidth = stripWidth - padding * 2;
-        const photoHeight = 240;
-        const bottomSpace = 60;
+        const photoHeight = photoWidth / (16 / 9); // 16:9 aspect ratio
+        const bottomSpace = 60 * scale;
         const stripHeight =
           padding * 2 +
           photoHeight * 4 +
@@ -210,6 +212,10 @@ export function CustomPhotoStrip({
         canvas.width = stripWidth;
         canvas.height = stripHeight;
 
+        // Enable high-quality image smoothing
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = "high";
+
         // White background
         context.fillStyle = "#ffffff";
         context.fillRect(0, 0, stripWidth, stripHeight);
@@ -217,15 +223,39 @@ export function CustomPhotoStrip({
         // Counter for loaded images
         let loadedCount = 0;
 
-        // Draw selected photos
+        // Draw selected photos with object-fit: cover behavior
         selectedPhotos.forEach((photoIndex, i) => {
           const img = new Image();
           img.src = uploadedPhotos[photoIndex];
           img.onload = () => {
             const yPosition =
               padding + i * (photoHeight + photoPadding);
+
+            // Calculate dimensions for object-fit: cover
+            const imgAspect = img.width / img.height;
+            const targetAspect = photoWidth / photoHeight;
+
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = img.width;
+            let sourceHeight = img.height;
+
+            if (imgAspect > targetAspect) {
+              // Image is wider - crop left and right
+              sourceWidth = img.height * targetAspect;
+              sourceX = (img.width - sourceWidth) / 2;
+            } else {
+              // Image is taller - crop top and bottom
+              sourceHeight = img.width / targetAspect;
+              sourceY = (img.height - sourceHeight) / 2;
+            }
+
             context.drawImage(
               img,
+              sourceX,
+              sourceY,
+              sourceWidth,
+              sourceHeight,
               padding,
               yPosition,
               photoWidth,
@@ -237,17 +267,18 @@ export function CustomPhotoStrip({
             // Add branding after last image
             if (loadedCount === 4) {
               context.fillStyle = "#9333ea";
-              context.font = "28px Pacifico, cursive";
+              context.font = `${28 * scale}px Pacifico, cursive`;
               context.textAlign = "center";
               context.fillText(
                 "Fotoboo",
                 stripWidth / 2,
-                stripHeight - 25,
+                stripHeight - 25 * scale,
               );
 
-              // Download
+              // Download with high quality
               const link = document.createElement("a");
               link.download = `fotoboo-custom-${Date.now()}.png`;
+              // Use maximum quality PNG for best results
               link.href = canvas.toDataURL("image/png");
               link.click();
               toast.success("Photo strip downloaded!");
@@ -548,11 +579,15 @@ export function CustomPhotoStrip({
               <div className="bg-white p-6 rounded-lg shadow-2xl max-w-xs mx-auto">
                 <div className="space-y-3">
                   {selectedPhotos.map((photoIndex, i) => (
-                    <div key={i} className="w-full">
+                    <div
+                      key={i}
+                      className="w-full relative rounded-sm overflow-hidden bg-black"
+                      style={{ aspectRatio: "16/9" }}
+                    >
                       <img
                         src={uploadedPhotos[photoIndex]}
                         alt={`Strip ${i + 1}`}
-                        className="w-full rounded-sm"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   ))}
