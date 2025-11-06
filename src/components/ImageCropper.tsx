@@ -31,6 +31,18 @@ export function ImageCropper({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Use refs to avoid stale closures in event handlers
+  const cropAreaRef = useRef({
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 200 / aspectRatio,
+  });
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
+  const resizeHandleRef = useRef<string | null>(null);
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
   const [cropArea, setCropArea] = useState({
     x: 0,
@@ -48,6 +60,27 @@ export function ImageCropper({
   const [rotation, setRotation] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Sync refs with state
+  useEffect(() => {
+    cropAreaRef.current = cropArea;
+  }, [cropArea]);
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
+  useEffect(() => {
+    isResizingRef.current = isResizing;
+  }, [isResizing]);
+
+  useEffect(() => {
+    resizeHandleRef.current = resizeHandle;
+  }, [resizeHandle]);
+
+  useEffect(() => {
+    dragStartRef.current = dragStart;
+  }, [dragStart]);
+
   useEffect(() => {
     const img = new Image();
     img.src = image;
@@ -55,21 +88,27 @@ export function ImageCropper({
       imageRef.current = img;
       setImageLoaded(true);
 
-      // Initialize crop area to center
-      const containerWidth = 600;
-      const containerHeight = 450;
-      const initialWidth = Math.min(
-        containerWidth * 0.8,
-        img.width,
-      );
-      const initialHeight = initialWidth / aspectRatio;
+      // Initialize crop area to center using actual container dimensions
+      const container = containerRef.current;
+      if (container) {
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        const initialWidth = Math.min(
+          containerWidth * 0.8,
+          img.width,
+        );
+        const initialHeight = initialWidth / aspectRatio;
 
-      setCropArea({
-        x: (containerWidth - initialWidth) / 2,
-        y: (containerHeight - initialHeight) / 2,
-        width: initialWidth,
-        height: initialHeight,
-      });
+        const newCropArea = {
+          x: (containerWidth - initialWidth) / 2,
+          y: (containerHeight - initialHeight) / 2,
+          width: initialWidth,
+          height: initialHeight,
+        };
+        
+        setCropArea(newCropArea);
+        cropAreaRef.current = newCropArea;
+      }
     };
   }, [image, aspectRatio]);
 
@@ -438,7 +477,7 @@ export function ImageCropper({
     }
   };
 
-  // Touch event handlers for mobile support
+  // Touch event handlers for mobile support with refs to avoid stale closures
   const handleTouchStart = (
     e: React.TouchEvent<HTMLCanvasElement>,
   ) => {
@@ -458,17 +497,66 @@ export function ImageCropper({
       setResizeHandle(handle);
       setDragStart({ x, y });
       
-      // Add global touch move/end listeners
+      // Add global touch move/end listeners using refs
       const handleGlobalTouchMove = (moveEvent: TouchEvent) => {
         moveEvent.preventDefault();
         if (!canvas) return;
         
         const rect = canvas.getBoundingClientRect();
         const touch = moveEvent.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
+        const touchX = touch.clientX - rect.left;
+        const touchY = touch.clientY - rect.top;
         
-        handleTouchMoveLogic(x, y, canvas);
+        if (isResizingRef.current && resizeHandleRef.current) {
+          const deltaX = touchX - dragStartRef.current.x;
+          const deltaY = touchY - dragStartRef.current.y;
+
+          let newX = cropAreaRef.current.x;
+          let newY = cropAreaRef.current.y;
+          let newWidth = cropAreaRef.current.width;
+          let newHeight = cropAreaRef.current.height;
+
+          switch (resizeHandleRef.current) {
+            case "nw":
+              newX = cropAreaRef.current.x + deltaX;
+              newWidth = cropAreaRef.current.width - deltaX;
+              newHeight = newWidth / aspectRatio;
+              newY = cropAreaRef.current.y + cropAreaRef.current.height - newHeight;
+              break;
+            case "ne":
+              newWidth = cropAreaRef.current.width + deltaX;
+              newHeight = newWidth / aspectRatio;
+              newY = cropAreaRef.current.y + cropAreaRef.current.height - newHeight;
+              break;
+            case "sw":
+              newX = cropAreaRef.current.x + deltaX;
+              newWidth = cropAreaRef.current.width - deltaX;
+              newHeight = newWidth / aspectRatio;
+              break;
+            case "se":
+              newWidth = cropAreaRef.current.width + deltaX;
+              newHeight = newWidth / aspectRatio;
+              break;
+          }
+
+          const minSize = 50;
+          if (newWidth >= minSize && newHeight >= minSize) {
+            if (
+              newX >= 0 &&
+              newY >= 0 &&
+              newX + newWidth <= canvas.width &&
+              newY + newHeight <= canvas.height
+            ) {
+              setCropArea({
+                x: newX,
+                y: newY,
+                width: newWidth,
+                height: newHeight,
+              });
+              setDragStart({ x: touchX, y: touchY });
+            }
+          }
+        }
       };
       
       const handleGlobalTouchEnd = () => {
@@ -496,17 +584,34 @@ export function ImageCropper({
       setIsDragging(true);
       setDragStart({ x: x - cropArea.x, y: y - cropArea.y });
       
-      // Add global touch move/end listeners
+      // Add global touch move/end listeners using refs
       const handleGlobalTouchMove = (moveEvent: TouchEvent) => {
         moveEvent.preventDefault();
         if (!canvas) return;
         
         const rect = canvas.getBoundingClientRect();
         const touch = moveEvent.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
+        const touchX = touch.clientX - rect.left;
+        const touchY = touch.clientY - rect.top;
         
-        handleTouchMoveLogic(x, y, canvas);
+        if (isDraggingRef.current) {
+          const newX = Math.max(
+            0,
+            Math.min(
+              touchX - dragStartRef.current.x,
+              canvas.width - cropAreaRef.current.width,
+            ),
+          );
+          const newY = Math.max(
+            0,
+            Math.min(
+              touchY - dragStartRef.current.y,
+              canvas.height - cropAreaRef.current.height,
+            ),
+          );
+
+          setCropArea((prev) => ({ ...prev, x: newX, y: newY }));
+        }
       };
       
       const handleGlobalTouchEnd = () => {
@@ -524,92 +629,10 @@ export function ImageCropper({
     }
   };
 
-  const handleTouchMoveLogic = (x: number, y: number, canvas: HTMLCanvasElement) => {
-    if (isResizing && resizeHandle) {
-      const deltaX = x - dragStart.x;
-      const deltaY = y - dragStart.y;
-
-      let newX = cropArea.x;
-      let newY = cropArea.y;
-      let newWidth = cropArea.width;
-      let newHeight = cropArea.height;
-
-      // Calculate new dimensions based on handle
-      switch (resizeHandle) {
-        case "nw": // top-left
-          newX = cropArea.x + deltaX;
-          newWidth = cropArea.width - deltaX;
-          newHeight = newWidth / aspectRatio;
-          newY = cropArea.y + cropArea.height - newHeight;
-          break;
-        case "ne": // top-right
-          newWidth = cropArea.width + deltaX;
-          newHeight = newWidth / aspectRatio;
-          newY = cropArea.y + cropArea.height - newHeight;
-          break;
-        case "sw": // bottom-left
-          newX = cropArea.x + deltaX;
-          newWidth = cropArea.width - deltaX;
-          newHeight = newWidth / aspectRatio;
-          break;
-        case "se": // bottom-right
-          newWidth = cropArea.width + deltaX;
-          newHeight = newWidth / aspectRatio;
-          break;
-      }
-
-      // Enforce minimum size
-      const minSize = 50;
-      if (newWidth >= minSize && newHeight >= minSize) {
-        // Ensure crop area stays within canvas bounds
-        if (
-          newX >= 0 &&
-          newY >= 0 &&
-          newX + newWidth <= canvas.width &&
-          newY + newHeight <= canvas.height
-        ) {
-          setCropArea({
-            x: newX,
-            y: newY,
-            width: newWidth,
-            height: newHeight,
-          });
-          setDragStart({ x, y });
-        }
-      }
-    } else if (isDragging) {
-      const newX = Math.max(
-        0,
-        Math.min(
-          x - dragStart.x,
-          canvas.width - cropArea.width,
-        ),
-      );
-      const newY = Math.max(
-        0,
-        Math.min(
-          y - dragStart.y,
-          canvas.height - cropArea.height,
-        ),
-      );
-
-      setCropArea((prev) => ({ ...prev, x: newX, y: newY }));
-    }
-  };
-
   const handleTouchMove = (
     e: React.TouchEvent<HTMLCanvasElement>,
   ) => {
     e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    
-    handleTouchMoveLogic(x, y, canvas);
   };
 
   const handleTouchEnd = () => {
@@ -750,7 +773,7 @@ export function ImageCropper({
             ref={containerRef}
             className="relative w-full bg-black/50 rounded-lg overflow-hidden"
             style={{
-              height: "450px",
+              height: "min(450px, 60vh)",
               touchAction: "none", // Prevent browser gestures
               WebkitUserSelect: "none", // Prevent text selection on mobile
               userSelect: "none",
