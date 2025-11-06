@@ -613,8 +613,8 @@ export function PhotoStripEditor({
               
               const stickerOffsetX = 1;
               const stickerOffsetY = 6;
-              const textOffsetX = 1;
-              const textOffsetY = 13; // smaller Y shift for text
+              const textOffsetX = 5;
+              const textOffsetY = 14; // smaller Y shift for text
               // Draw text elements with rotation and scaling
               // Note: Text positions in preview are relative to content area (inside padding)
               // So we need to add padding offset to match preview positioning

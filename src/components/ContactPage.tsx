@@ -5,27 +5,48 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { useState } from 'react';
+import { toast } from 'sonner@2.0.3';
 
 export function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
+  const [result, setResult] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // This is a mock submission - in a real app, you'd send this to a backend
-    alert('Thank you for your message! We\'ll get back to you soon.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
-  };
+    setIsSubmitting(true);
+    setResult('Sending...');
+    
+    // Store form reference before async operations
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    // Replace this with your actual web3forms access key
+    formData.append('access_key', '75fd1140-44b5-4760-9a4f-3a506fbe86a5');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setResult('Message sent successfully!');
+        toast.success('Thank you for your message! We\'ll get back to you soon.');
+        form.reset();
+      } else {
+        console.error('Form submission error:', data);
+        setResult('Error submitting form');
+        toast.error('Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      setResult('Error submitting form');
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => setResult(''), 5000);
+    }
   };
 
   return (
@@ -52,9 +73,8 @@ export function ContactPage() {
                 <Input
                   id="name"
                   name="name"
-                  value={formData.name}
-                  onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
                   placeholder="Your name"
                 />
@@ -66,9 +86,8 @@ export function ContactPage() {
                   id="email"
                   name="email"
                   type="email"
-                  value={formData.email}
-                  onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
                   placeholder="your@email.com"
                 />
@@ -79,9 +98,8 @@ export function ContactPage() {
                 <Input
                   id="subject"
                   name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
                   placeholder="What's this about?"
                 />
@@ -92,9 +110,8 @@ export function ContactPage() {
                 <Textarea
                   id="message"
                   name="message"
-                  value={formData.message}
-                  onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                   rows={5}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50 resize-none"
                   placeholder="Your message..."
@@ -103,12 +120,19 @@ export function ContactPage() {
 
               <Button
                 type="submit"
-                className="bg-white hover:bg-white/90 w-full gap-2"
+                disabled={isSubmitting}
+                className="bg-white hover:bg-white/90 w-full gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ color: '#44318D' }}
               >
                 <Send className="w-4 h-4" />
-                Send Message
+                {isSubmitting ? 'Sending...' : 'Send Message'}
               </Button>
+              
+              {result && (
+                <p className="text-center text-white/90 text-sm">
+                  {result}
+                </p>
+              )}
             </form>
           </Card>
 
@@ -121,9 +145,9 @@ export function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-xl text-white mb-2">Email</h3>
-                  <p className="text-white/80">joannephan04@gmail.com</p>
+                  <p className="text-white/80">hello@fotoboo.com</p>
                   <p className="text-white/60 text-sm mt-1">
-                    We typically respond within 24-48 hours - Or sooner! OR WHEN I WAKE UP LMAO-
+                    We typically respond within 24-48 hours
                   </p>
                 </div>
               </div>
