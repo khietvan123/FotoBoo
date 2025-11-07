@@ -66,11 +66,11 @@ export function FAQPage() {
         </div>
 
         {/* FAQ Accordion */}
-        <Card className="p-8 bg-white/10 backdrop-blur-md border-white/20">
+        <Card className="p-8 bg-white/10 backdrop-blur-md border-white/20" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
           <Accordion type="single" collapsible className="space-y-4">
             {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`} className="border-white/20">
-                <AccordionTrigger className="text-white hover:text-white/80 text-left">
+                <AccordionTrigger className="text-white hover:text-white/80 text-left font-semibold text-lg" >
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-white/80">

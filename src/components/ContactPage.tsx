@@ -69,7 +69,7 @@ export function ContactPage() {
             <h2 className="text-2xl text-white mb-6">Send a Message</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <Label htmlFor="name" className="text-white mb-2 block">Name</Label>
+                <Label htmlFor="name" className="text-white mb-2 block font-semibold text-sm" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Name</Label>
                 <Input
                   id="name"
                   name="name"
@@ -77,11 +77,12 @@ export function ContactPage() {
                   disabled={isSubmitting}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
                   placeholder="Your name"
+                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
                 />
               </div>
 
               <div>
-                <Label htmlFor="email" className="text-white mb-2 block">Email</Label>
+                <Label htmlFor="email" className="text-white mb-2 block text-sm font-semibold" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Email</Label>
                 <Input
                   id="email"
                   name="email"
@@ -90,11 +91,12 @@ export function ContactPage() {
                   disabled={isSubmitting}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
                   placeholder="your@email.com"
+                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
                 />
               </div>
 
               <div>
-                <Label htmlFor="subject" className="text-white mb-2 block">Subject</Label>
+                <Label htmlFor="subject" className="text-white mb-2 block text-sm font-semibold" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Subject</Label>
                 <Input
                   id="subject"
                   name="subject"
@@ -102,11 +104,12 @@ export function ContactPage() {
                   disabled={isSubmitting}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50"
                   placeholder="What's this about?"
+                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
                 />
               </div>
 
               <div>
-                <Label htmlFor="message" className="text-white mb-2 block">Message</Label>
+                <Label htmlFor="message" className="text-white mb-2 block text-sm font-semibold" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Message</Label>
                 <Textarea
                   id="message"
                   name="message"
@@ -115,6 +118,7 @@ export function ContactPage() {
                   rows={5}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/50 resize-none"
                   placeholder="Your message..."
+                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
                 />
               </div>
 
@@ -145,8 +149,8 @@ export function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-xl text-white mb-2">Email</h3>
-                  <p className="text-white/80">hello@fotoboo.com</p>
-                  <p className="text-white/60 text-sm mt-1">
+                  <p className="text-white/80" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>joannephan04@gmail.com</p>
+                  <p className="text-white/60 text-sm mt-1" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     We typically respond within 24-48 hours
                   </p>
                 </div>
@@ -155,7 +159,7 @@ export function ContactPage() {
 
             <Card className="p-8 bg-white/10 backdrop-blur-md border-white/20">
               <h3 className="text-xl text-white mb-4">Office Hours</h3>
-              <div className="space-y-2 text-white/80">
+              <div className="space-y-2 text-white/80" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                 <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
                 <p>Saturday: 10:00 AM - 4:00 PM</p>
                 <p>Sunday: Closed</p>
@@ -167,7 +171,7 @@ export function ContactPage() {
 
             <Card className="p-8 bg-white/10 backdrop-blur-md border-white/20">
               <h3 className="text-xl text-white mb-4">Quick Links</h3>
-              <div className="space-y-2 text-white/80">
+              <div className="space-y-2 text-white/80" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                 <p>• Check our FAQ page for quick answers</p>
                 <p>• Follow us on social media for updates</p>
                 <p>• Report bugs or suggest features</p>

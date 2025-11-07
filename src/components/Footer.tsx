@@ -15,7 +15,7 @@ export function Footer() {
 
           {/* Copyright */}
           <div className="text-white/80 text-sm">
-            <p className="flex items-center gap-2 flex-wrap justify-center">
+            <p className="flex items-center gap-2 flex-wrap justify-center" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
               © {currentYear} Fotoboo. All rights reserved.
               <span className="hidden sm:inline">•</span>
               <span className="flex items-center gap-1">
@@ -25,7 +25,7 @@ export function Footer() {
           </div>
 
           {/* Additional Links */}
-          <div className="flex items-center gap-4 text-white/60 text-xs">
+          <div className="flex items-center gap-4 text-white/60 text-xs" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
             <span>Privacy Policy</span>
             <span>•</span>
             <span>Terms of Service</span>
