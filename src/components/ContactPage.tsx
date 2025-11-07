@@ -151,7 +151,7 @@ export function ContactPage() {
                   <h3 className="text-xl text-white mb-2">Email</h3>
                   <p className="text-white/80" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>joannephan04@gmail.com</p>
                   <p className="text-white/60 text-sm mt-1" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                    We typically respond within 24-48 hours
+                    We typically respond within 24-48 hours. Or sooner!
                   </p>
                 </div>
               </div>
